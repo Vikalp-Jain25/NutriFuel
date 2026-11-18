@@ -80,6 +80,7 @@ function NutriFuelAppShell() {
             <HeroSection
               onClaimTrial={() => handleNavigate('storefront', 'trial-box')}
               onExploreMenu={() => handleNavigate('storefront', 'menu')}
+              onGoToKitchen={() => handleNavigate('kitchen')}
             />
             <MenuCatalogSection
               selectedHub={selectedHub}
