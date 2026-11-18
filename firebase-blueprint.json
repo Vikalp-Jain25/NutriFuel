@@ -1,0 +1,406 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated NutriFuel customer profile with delivery hub and macro preferences.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID matching the document ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Verified Google account email address.",
+          "minLength": 3,
+          "maxLength": 254
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Customer display name.",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "cityHub": {
+          "type": "string",
+          "description": "Primary NutriFuel delivery city hub.",
+          "enum": ["Dehradun", "Gurgaon", "Noida", "Bangalore"],
+          "maxLength": 32
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "6-digit Indian postal PIN code.",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[1-9][0-9]{5}$"
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "description": "Street, apartment, or corporate park delivery address.",
+          "minLength": 5,
+          "maxLength": 240
+        },
+        "phone": {
+          "type": "string",
+          "description": "10-digit Indian mobile number.",
+          "minLength": 10,
+          "maxLength": 15,
+          "pattern": "^[0-9+\\-\\s]{10,15}$"
+        },
+        "dietaryGoal": {
+          "type": "string",
+          "description": "Primary nutrition objective.",
+          "enum": ["Lean Muscle", "Balanced Maintenance", "Calorie Deficit", "Student Fuel"],
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": ["uid", "email", "displayName", "cityHub", "dietaryGoal", "createdAt", "updatedAt"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "Recurring weekly or 4-week NutriFuel meal-kit subscription.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "planType": {
+          "type": "string",
+          "description": "Subscription cadence and discount tier.",
+          "enum": ["3-meals-weekly", "5-meals-weekly", "4-week-auto"],
+          "maxLength": 32
+        },
+        "mealsPerWeek": {
+          "type": "number",
+          "description": "Number of meal kits delivered per week (3 or 5)."
+        },
+        "pricePerKit": {
+          "type": "number",
+          "description": "INR price per kit (220 standard or 187 with 15% 4-week retention discount)."
+        },
+        "weeklyTotal": {
+          "type": "number",
+          "description": "Weekly INR total."
+        },
+        "cityHub": {
+          "type": "string",
+          "description": "Delivery hub city.",
+          "enum": ["Dehradun", "Gurgaon", "Noida", "Bangalore"],
+          "maxLength": 32
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "6-digit delivery PIN code.",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[1-9][0-9]{5}$"
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "description": "Delivery address for weekly box.",
+          "minLength": 5,
+          "maxLength": 240
+        },
+        "deliverySlot": {
+          "type": "string",
+          "description": "Preferred delivery time window.",
+          "enum": ["Evening 5-7 PM", "Morning 7-9 AM"],
+          "maxLength": 32
+        },
+        "selectedMealIds": {
+          "type": "array",
+          "description": "Selected vegetarian high-protein meal-kit IDs (max 5)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Subscription lifecycle state.",
+          "enum": ["active", "paused", "cancelled"],
+          "maxLength": 16
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server last-modified timestamp."
+        }
+      },
+      "required": [
+        "userId",
+        "planType",
+        "mealsPerWeek",
+        "pricePerKit",
+        "weeklyTotal",
+        "cityHub",
+        "postalCode",
+        "deliveryAddress",
+        "deliverySlot",
+        "selectedMealIds",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "50%-off 3-meal trial box or a la carte meal-kit order.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "orderType": {
+          "type": "string",
+          "description": "Whether this is the 50%-off 3-meal trial box or an a la carte order.",
+          "enum": ["trial-box", "a-la-carte"],
+          "maxLength": 24
+        },
+        "mealIds": {
+          "type": "array",
+          "description": "Ordered meal-kit IDs (1 to 10)."
+        },
+        "addonIds": {
+          "type": "array",
+          "description": "Optional premium add-on IDs (0 to 5)."
+        },
+        "itemCount": {
+          "type": "number",
+          "description": "Total meal kits in order."
+        },
+        "subtotal": {
+          "type": "number",
+          "description": "INR subtotal before trial discount."
+        },
+        "discountAmount": {
+          "type": "number",
+          "description": "INR discount applied."
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Final INR payable amount."
+        },
+        "cityHub": {
+          "type": "string",
+          "description": "Delivery hub city.",
+          "enum": ["Dehradun", "Gurgaon", "Noida", "Bangalore"],
+          "maxLength": 32
+        },
+        "postalCode": {
+          "type": "string",
+          "description": "6-digit delivery PIN code.",
+          "minLength": 6,
+          "maxLength": 6,
+          "pattern": "^[1-9][0-9]{5}$"
+        },
+        "deliveryAddress": {
+          "type": "string",
+          "description": "Delivery street address or campus block.",
+          "minLength": 5,
+          "maxLength": 240
+        },
+        "status": {
+          "type": "string",
+          "description": "Order fulfillment status.",
+          "enum": ["confirmed", "preparing", "delivered", "cancelled"],
+          "maxLength": 20
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server creation timestamp."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server update timestamp."
+        }
+      },
+      "required": [
+        "userId",
+        "orderType",
+        "mealIds",
+        "addonIds",
+        "itemCount",
+        "subtotal",
+        "discountAmount",
+        "totalAmount",
+        "cityHub",
+        "postalCode",
+        "deliveryAddress",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PilotFeedback": {
+      "title": "PilotFeedback",
+      "description": "Week 3 / Mission 11 pilot survey entry tracking prep time under 15 minutes, satisfaction, and NPS.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Author Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "mealId": {
+          "type": "string",
+          "description": "Meal kit identifier cooked.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "mealTitle": {
+          "type": "string",
+          "description": "Display title of the cooked meal kit.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "prepMinutes": {
+          "type": "number",
+          "description": "Actual preparation and cooking duration in minutes (1 to 60)."
+        },
+        "underFifteenMinutes": {
+          "type": "boolean",
+          "description": "Whether the meal was completed in 15 minutes or less."
+        },
+        "tasteRating": {
+          "type": "number",
+          "description": "Satisfaction rating on taste and recipe clarity (1 to 5)."
+        },
+        "freshnessRating": {
+          "type": "number",
+          "description": "Ingredient freshness and portion accuracy rating (1 to 5)."
+        },
+        "npsScore": {
+          "type": "number",
+          "description": "Likelihood to subscribe or recommend (0 to 10)."
+        },
+        "cityHub": {
+          "type": "string",
+          "description": "Delivery hub where kit was received.",
+          "enum": ["Dehradun", "Gurgaon", "Noida", "Bangalore"],
+          "maxLength": 32
+        },
+        "comment": {
+          "type": "string",
+          "description": "Optional qualitative note on prep workflow.",
+          "maxLength": 500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server submission timestamp."
+        }
+      },
+      "required": [
+        "userId",
+        "mealId",
+        "mealTitle",
+        "prepMinutes",
+        "underFifteenMinutes",
+        "tasteRating",
+        "freshnessRating",
+        "npsScore",
+        "cityHub",
+        "comment",
+        "createdAt"
+      ]
+    },
+    "CookingLog": {
+      "title": "CookingLog",
+      "description": "Completed 15-minute guided recipe card session log.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Owner Firebase Auth UID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "mealId": {
+          "type": "string",
+          "description": "Meal kit identifier.",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "mealTitle": {
+          "type": "string",
+          "description": "Meal kit title.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "elapsedSeconds": {
+          "type": "number",
+          "description": "Actual cooking timer seconds recorded (1 to 3600)."
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server completion timestamp."
+        }
+      },
+      "required": ["userId", "mealId", "mealTitle", "elapsedSeconds", "completedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Private customer profile documents keyed by Firebase Auth UID."
+    },
+    "/subscriptions/{subscriptionId}": {
+      "schema": {
+        "$ref": "#/entities/Subscription"
+      },
+      "description": "User-owned recurring weekly or 4-week meal-kit subscriptions."
+    },
+    "/orders/{orderId}": {
+      "schema": {
+        "$ref": "#/entities/Order"
+      },
+      "description": "User-owned 3-meal trial box and a la carte meal-kit orders."
+    },
+    "/feedback/{feedbackId}": {
+      "schema": {
+        "$ref": "#/entities/PilotFeedback"
+      },
+      "description": "User-owned Week 3 pilot prep-time and satisfaction feedback submissions."
+    },
+    "/cookingLogs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/CookingLog"
+      },
+      "description": "User-owned 15-minute interactive recipe completion logs."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "NutriFuel",
+  "description": "Subscription-based fresh, pre-portioned 15-minute vegetarian high-protein meal kits for busy urban professionals and students.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

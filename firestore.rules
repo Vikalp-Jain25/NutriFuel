@@ -1,0 +1,227 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable hardened primitives
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidHub(hub) {
+      return hub is string && hub in ['Dehradun', 'Gurgaon', 'Noida', 'Bangalore'];
+    }
+
+    function isValidPostalCode(pin) {
+      return pin is string && pin.size() == 6 && pin.matches('^[1-9][0-9]{5}$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'email', 'displayName', 'cityHub', 'dietaryGoal', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['uid', 'email', 'displayName', 'cityHub', 'postalCode', 'deliveryAddress', 'phone', 'dietaryGoal', 'createdAt', 'updatedAt'])
+        && data.uid is string && data.uid == request.auth.uid && isValidId(data.uid)
+        && data.email is string && data.email.size() >= 3 && data.email.size() <= 254 && data.email == request.auth.token.email
+        && data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 100
+        && isValidHub(data.cityHub)
+        && data.dietaryGoal is string && data.dietaryGoal in ['Lean Muscle', 'Balanced Maintenance', 'Calorie Deficit', 'Student Fuel']
+        && (!('postalCode' in data) || data.postalCode == '' || isValidPostalCode(data.postalCode))
+        && (!('deliveryAddress' in data) || (data.deliveryAddress is string && data.deliveryAddress.size() <= 240))
+        && (!('phone' in data) || (data.phone is string && data.phone.size() <= 15 && (data.phone == '' || data.phone.matches('^[0-9+\\-\\s]{10,15}$'))))
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidSubscription(data) {
+      return data.keys().hasAll([
+          'userId', 'planType', 'mealsPerWeek', 'pricePerKit', 'weeklyTotal',
+          'cityHub', 'postalCode', 'deliveryAddress', 'deliverySlot',
+          'selectedMealIds', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'planType', 'mealsPerWeek', 'pricePerKit', 'weeklyTotal',
+          'cityHub', 'postalCode', 'deliveryAddress', 'deliverySlot',
+          'selectedMealIds', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.planType is string && data.planType in ['3-meals-weekly', '5-meals-weekly', '4-week-auto']
+        && data.mealsPerWeek is number && data.mealsPerWeek in [3, 5]
+        && data.pricePerKit is number && (data.pricePerKit == 220 || data.pricePerKit == 187)
+        && data.weeklyTotal is number && data.weeklyTotal > 0 && data.weeklyTotal <= 5000
+        && isValidHub(data.cityHub)
+        && isValidPostalCode(data.postalCode)
+        && data.deliveryAddress is string && data.deliveryAddress.size() >= 5 && data.deliveryAddress.size() <= 240
+        && data.deliverySlot is string && data.deliverySlot in ['Evening 5-7 PM', 'Morning 7-9 AM']
+        && data.selectedMealIds is list && data.selectedMealIds.size() >= 1 && data.selectedMealIds.size() <= 5
+        && data.selectedMealIds[0] is string && data.selectedMealIds[0].size() <= 64
+        && data.status is string && data.status in ['active', 'paused', 'cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'userId', 'orderType', 'mealIds', 'addonIds', 'itemCount',
+          'subtotal', 'discountAmount', 'totalAmount', 'cityHub',
+          'postalCode', 'deliveryAddress', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'orderType', 'mealIds', 'addonIds', 'itemCount',
+          'subtotal', 'discountAmount', 'totalAmount', 'cityHub',
+          'postalCode', 'deliveryAddress', 'status', 'createdAt', 'updatedAt'
+        ])
+        && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.orderType is string && data.orderType in ['trial-box', 'a-la-carte']
+        && data.mealIds is list && data.mealIds.size() >= 1 && data.mealIds.size() <= 10
+        && data.mealIds[0] is string && data.mealIds[0].size() <= 64
+        && data.addonIds is list && data.addonIds.size() <= 5
+        && (data.addonIds.size() == 0 || (data.addonIds[0] is string && data.addonIds[0].size() <= 64))
+        && data.itemCount is number && data.itemCount >= 1 && data.itemCount <= 10
+        && data.subtotal is number && data.subtotal >= 220 && data.subtotal <= 10000
+        && data.discountAmount is number && data.discountAmount >= 0 && data.discountAmount <= data.subtotal
+        && data.totalAmount is number && data.totalAmount > 0 && data.totalAmount <= 10000
+        && isValidHub(data.cityHub)
+        && isValidPostalCode(data.postalCode)
+        && data.deliveryAddress is string && data.deliveryAddress.size() >= 5 && data.deliveryAddress.size() <= 240
+        && data.status is string && data.status in ['confirmed', 'preparing', 'delivered', 'cancelled']
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidPilotFeedback(data) {
+      return data.keys().hasAll([
+          'userId', 'mealId', 'mealTitle', 'prepMinutes', 'underFifteenMinutes',
+          'tasteRating', 'freshnessRating', 'npsScore', 'cityHub', 'comment', 'createdAt'
+        ])
+        && data.keys().hasOnly([
+          'userId', 'mealId', 'mealTitle', 'prepMinutes', 'underFifteenMinutes',
+          'tasteRating', 'freshnessRating', 'npsScore', 'cityHub', 'comment', 'createdAt'
+        ])
+        && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.mealId is string && data.mealId.size() >= 1 && data.mealId.size() <= 64 && isValidId(data.mealId)
+        && data.mealTitle is string && data.mealTitle.size() >= 2 && data.mealTitle.size() <= 120
+        && data.prepMinutes is number && data.prepMinutes >= 1 && data.prepMinutes <= 60
+        && data.underFifteenMinutes is bool
+        && data.tasteRating is number && data.tasteRating >= 1 && data.tasteRating <= 5
+        && data.freshnessRating is number && data.freshnessRating >= 1 && data.freshnessRating <= 5
+        && data.npsScore is number && data.npsScore >= 0 && data.npsScore <= 10
+        && isValidHub(data.cityHub)
+        && data.comment is string && data.comment.size() <= 500
+        && data.createdAt is timestamp;
+    }
+
+    function isValidCookingLog(data) {
+      return data.keys().hasAll(['userId', 'mealId', 'mealTitle', 'elapsedSeconds', 'completedAt'])
+        && data.keys().hasOnly(['userId', 'mealId', 'mealTitle', 'elapsedSeconds', 'completedAt'])
+        && data.userId is string && data.userId == request.auth.uid && isValidId(data.userId)
+        && data.mealId is string && data.mealId.size() >= 1 && data.mealId.size() <= 64 && isValidId(data.mealId)
+        && data.mealTitle is string && data.mealTitle.size() >= 2 && data.mealTitle.size() <= 120
+        && data.elapsedSeconds is number && data.elapsedSeconds >= 1 && data.elapsedSeconds <= 3600
+        && data.completedAt is timestamp;
+    }
+
+    // 1. User Profiles (PII strictly owner-only)
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if false;
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId
+        && isValidUserProfile(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId
+        && isValidUserProfile(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'displayName', 'cityHub', 'postalCode', 'deliveryAddress', 'phone', 'dietaryGoal', 'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    // 2. Weekly & 4-Week Subscriptions
+    match /subscriptions/{subscriptionId} {
+      allow get: if isSignedIn() && isValidId(subscriptionId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(subscriptionId)
+        && isValidSubscription(incoming())
+        && incoming().status == 'active'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(subscriptionId)
+        && isValidSubscription(incoming())
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && existing().status != 'cancelled'
+        && (
+          (incoming().status in ['active', 'paused'] && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+          (incoming().status == 'cancelled' && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])) ||
+          (incoming().status == existing().status && incoming().diff(existing()).affectedKeys().hasOnly([
+            'selectedMealIds', 'deliverySlot', 'cityHub', 'postalCode', 'deliveryAddress', 'updatedAt'
+          ]))
+        );
+      allow delete: if false;
+    }
+
+    // 3. Trial Box & A La Carte Orders
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && isValidId(orderId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(orderId)
+        && isValidOrder(incoming())
+        && incoming().status == 'confirmed'
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isSignedIn() && isValidId(orderId)
+        && isValidOrder(incoming())
+        && existing().userId == request.auth.uid
+        && incoming().userId == existing().userId
+        && incoming().orderType == existing().orderType
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && existing().status == 'confirmed'
+        && incoming().status == 'cancelled'
+        && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if false;
+    }
+
+    // 4. Week 3 Pilot Feedback
+    match /feedback/{feedbackId} {
+      allow get: if isSignedIn() && isValidId(feedbackId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(feedbackId)
+        && isValidPilotFeedback(incoming())
+        && incoming().createdAt == request.time;
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(feedbackId) && existing().userId == request.auth.uid;
+    }
+
+    // 5. 15-Minute Recipe Cooking Logs
+    match /cookingLogs/{logId} {
+      allow get: if isSignedIn() && isValidId(logId) && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && existing().userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(logId)
+        && isValidCookingLog(incoming())
+        && incoming().completedAt == request.time;
+      allow update: if false;
+      allow delete: if isSignedIn() && isValidId(logId) && existing().userId == request.auth.uid;
+    }
+  }
+}
